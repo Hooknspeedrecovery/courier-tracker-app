@@ -1,6 +1,6 @@
-flask
-requests
-beautifulsoup4
-flask-cors
-gunicorn
-
+Flask==3.0.2
+flask-cors==4.0.0
+requests==2.31.0
+beautifulsoup4==4.12.3
+playwright==1.42.0
+gunicorn==21.2.0
