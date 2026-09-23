@@ -3,87 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Courier Tracker</title>
+    <title>Office Courier Tracker</title>
     <style>
-        body { font-family: Arial, sans-serif; background-color: #f4f4f9; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; height: 100vh; }
-        .container { background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
-        h2 { text-align: center; color: #333; }
-        label { display: block; margin-top: 15px; font-weight: bold; color: #555; }
-        select, input, button { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        button { background-color: #007BFF; color: white; border: none; font-size: 16px; margin-top: 20px; cursor: pointer; }
-        button:hover { background-color: #0056b3; }
-        #result { margin-top: 20px; padding: 10px; border-radius: 4px; text-align: center; }
-        .success { background-color: #d4edda; color: #155724; }
-        .error { background-color: #f8d7da; color: #721c24; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+        body { background: #f1f5f9; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 15px; }
+        .card { background: white; padding: 25px; border-radius: 10px; width: 100%; max-width: 500px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h2 { text-align: center; margin-bottom: 20px; color: #1e293b; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9rem; }
+        select, input { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 1rem; }
+        button { width: 100%; padding: 12px; background: #2563eb; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .loader { display: none; text-align: center; margin-top: 15px; color: #2563eb; }
+        .error { display: none; margin-top: 15px; background: #fee2e2; color: #991b1b; padding: 10px; border-radius: 6px; font-size: 0.9rem; }
+        .result { display: none; margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 15px; }
+        .row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.95rem; }
     </style>
 </head>
 <body>
+    <div class="card">
+        <h2>Courier Tracker</h2>
+        <form id="trackForm">
+            <div class="form-group">
+                <label>Select Courier</label>
+                <select id="courier" required>
+                    <option value="dtdc">DTDC</option>
+                    <option value="delhivery">Delhivery</option>
+                    <option value="trackon">Trackon</option>
+                    <option value="professional">Professional Courier</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Tracking Number</label>
+                <input type="text" id="trackingNo" placeholder="Enter Tracking AWB" required>
+            </div>
+            <button type="submit">Track Package</button>
+        </form>
 
-<div class="container">
-    <h2>Courier Tracking</h2>
-    <form id="trackingForm">
-        <label for="courier">Select Courier:</label>
-        <select id="courier" required>
-            <option value="DTDC">DTDC</option>
-            <option value="PROFESSIONAL">Professional Couriers</option>
-            <option value="TRACKON">Trackon</option>
-            <option value="DELHIVERY">Delhivery</option>
-            <option value="SUPERFAST">Superfast</option>
-            <option value="DHL">DHL</option>
-        </select>
+        <div id="loader" class="loader">Scraping status from courier website...</div>
+        <div id="error" class="error"></div>
 
-        <label for="tracking_number">Tracking Number:</label>
-        <input type="text" id="tracking_number" placeholder="Enter tracking number" required>
+        <div id="result" class="result">
+            <div class="row"><strong>Courier:</strong> <span id="rCourier"></span></div>
+            <div class="row"><strong>Tracking No:</strong> <span id="rTrackNo"></span></div>
+            <div class="row"><strong>Status:</strong> <span id="rStatus" style="color:#2563eb; font-weight:bold;"></span></div>
+        </div>
+    </div>
 
-        <button type="submit" id="submitBtn">Track Shipment</button>
-    </form>
+    <script>
+        // ⚠️ Render Deploy ചെയ്ത ശേഷം ഉണ്ടാകുന്ന Live API URL ഇവിടെ നൽകുക
+        const BACKEND_URL = "https://YOUR-RENDER-APP-NAME.onrender.com/track";
 
-    <div id="result"></div>
-</div>
+        document.getElementById('trackForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const courier = document.getElementById('courier').value;
+            const tracking_no = document.getElementById('trackingNo').value.trim();
 
-<script>
-    document.getElementById('trackingForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        
-        const courier = document.getElementById('courier').value;
-        const trackingNumber = document.getElementById('tracking_number').value;
-        const resultDiv = document.getElementById('result');
-        const submitBtn = document.getElementById('submitBtn');
+            document.getElementById('loader').style.display = 'block';
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('result').style.display = 'none';
 
-        resultDiv.innerHTML = "Checking...";
-        resultDiv.className = "";
-        submitBtn.disabled = true;
+            try {
+                const res = await fetch(BACKEND_URL, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ courier, tracking_no })
+                });
 
-        try {
-            const response = await fetch('/track', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    courier: courier,
-                    tracking_number: trackingNumber
-                })
-            });
+                const data = await res.json();
+                document.getElementById('loader').style.display = 'none';
 
-            const data = await response.json();
-
-            if (data.success) {
-                resultDiv.innerHTML = data.status;
-                resultDiv.className = "success";
-            } else {
-                resultDiv.innerHTML = data.message;
-                resultDiv.className = "error";
+                if(data.success) {
+                    document.getElementById('rCourier').innerText = data.courier;
+                    document.getElementById('rTrackNo').innerText = data.tracking_no;
+                    document.getElementById('rStatus').innerText = data.status;
+                    document.getElementById('result').style.display = 'block';
+                } else {
+                    showError(data.message || 'Tracking failed');
+                }
+            } catch(err) {
+                document.getElementById('loader').style.display = 'none';
+                showError('Server connection error. Please try again.');
             }
-        } catch (error) {
-            resultDiv.innerHTML = "Error connecting to server!";
-            resultDiv.className = "error";
-        } finally {
-            submitBtn.disabled = false;
-        }
-    });
-</script>
+        });
 
+        function showError(msg) {
+            const err = document.getElementById('error');
+            err.innerText = msg;
+            err.style.display = 'block';
+        }
+    </script>
 </body>
 </html>
-
